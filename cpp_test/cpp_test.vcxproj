@@ -50,6 +50,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\user\test.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\user\hikvision_cpp.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
