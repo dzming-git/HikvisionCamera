@@ -1,5 +1,4 @@
 **/.vs
 Dependent/
 **/x64
-test.cpp
 *.dll
