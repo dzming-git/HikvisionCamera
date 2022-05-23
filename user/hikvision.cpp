@@ -5,16 +5,18 @@
 #else
 #include "hikvision_cpp.h"
 #endif // DLLGENERATE_EXPORTS
-#include <iostream>
+#include<ctime>
+#include <opencv2\core\core.hpp>
+#include <opencv2\highgui\highgui.hpp>
+#include <opencv2\imgproc\imgproc.hpp>
 
-using namespace std;
 /*==================================================================
 函 数 名：DecCBFun
 功能描述：回调函数，用于解码，并将解码后的图像传出
 输入参数：
-          pBuf:       PlayCtrl内部输入
-          pFrameInfo：PlayCtrl内部输入
-          pp_img：     由getImgInit函数中的PlayM4_SetDecCallBackMend作为参数输入，输出图像的双重指针
+----------pBuf:       图像缓冲区指针
+----------pFrameInfo：图像的信息，比如宽（nWidth）、高（nHeight）、图像类型（nType）
+----------pp_img：    由getImgInit函数中的PlayM4_SetDecCallBackMend作为参数输入，输出图像的双重指针
 作    者：Dzm
 日    期：2022.05.22
 其    它：海康威视SDK中用到的PlayCtrl模块中的4中PlayM4_SetDecCallBack都没有void*参数
@@ -23,18 +25,18 @@ using namespace std;
 ==================================================================*/
 void CALLBACK DecCBFun(long, char* pBuf, long, FRAME_INFO* pFrameInfo, void* pp_img, void*)
 {
-    Mat* pImg = *(Mat**)pp_img;
+    cv::Mat* pImg = *(cv::Mat**)pp_img;
     if (nullptr == pImg)
     {
-        *(Mat**)pp_img = new Mat;
-        pImg = *(Mat**)pp_img;
+        *(cv::Mat**)pp_img = new cv::Mat;
+        pImg = *(cv::Mat**)pp_img;
         pImg->create(pFrameInfo->nHeight, pFrameInfo->nWidth, CV_8UC3);
     }
-    Mat* pBGRImg = pImg;
+    cv::Mat* pBGRImg = pImg;
     if (T_YV12 == pFrameInfo->nType)
     {
-        Mat YUVImg(pFrameInfo->nHeight + pFrameInfo->nHeight / 2, pFrameInfo->nWidth, CV_8UC1, (unsigned char*)pBuf);
-        cvtColor(YUVImg, *pBGRImg, COLOR_YUV2BGR_YV12);
+        cv::Mat YUVImg(pFrameInfo->nHeight + pFrameInfo->nHeight / 2, pFrameInfo->nWidth, CV_8UC1, (unsigned char*)pBuf);
+        cv::cvtColor(YUVImg, *pBGRImg, cv::COLOR_YUV2BGR_YV12);
         YUVImg.~Mat();
     }
 }
@@ -42,10 +44,10 @@ void CALLBACK DecCBFun(long, char* pBuf, long, FRAME_INFO* pFrameInfo, void* pp_
 函 数 名：fRealDataCallBack_V30
 功能描述：回调函数，用于实时视频码流数据获取
 输入参数：
-          dwDataType:    获取的数据段类型
-          pBuffer：      数据段缓冲区
-          dwBufSize：    数据段大小
-          p_nPort：      视频流通道号指针
+----------dwDataType:    获取的数据段类型
+----------pBuffer：      数据段缓冲区指针
+----------dwBufSize：    数据段大小
+----------p_nPort：      视频流通道号指针
 作    者：Dzm
 日    期：2022.05.22
 其    它：
@@ -81,10 +83,10 @@ bool HikCamera::init()
 函 数 名：HikCamera::login
 功能描述：海康威视网络摄像头登录
 输入参数：
-          sDeviceAddress：网络摄像头ip地址
-          sUserName：登录用户名
-          sPassword：登录密码
-          wPort：端口号，一般为8000
+----------sDeviceAddress：网络摄像头ip地址
+----------sUserName：登录用户名
+----------sPassword：登录密码
+----------wPort：端口号，一般为8000
 返 回 值：是否登录成功
 作    者：Dzm
 日    期：2022.05.22
@@ -109,10 +111,10 @@ bool HikCamera::login(const char* sDeviceAddress, const char* sUserName, const c
 函 数 名：HikCamera::getImgInit
 功能描述：获取图片之前做的初始化
 输入参数：
-          sDeviceAddress：网络摄像头ip地址
-          sUserName：登录用户名
-          sPassword：登录密码
-          wPort：端口号，一般为8000
+----------sDeviceAddress：网络摄像头ip地址
+----------sUserName：登录用户名
+----------sPassword：登录密码
+----------wPort：端口号，一般为8000
 返 回 值：是否初始化成功
 作    者：Dzm
 日    期：2022.05.22
@@ -123,7 +125,7 @@ bool HikCamera::login(const char* sDeviceAddress, const char* sUserName, const c
 ==================================================================*/
 bool HikCamera::getImgInit()
 {
-    Mat **temp = new Mat*;
+    cv::Mat **temp = new cv::Mat*;
     pp_img = (void**)(void*)temp;
     //设置解码回调
     if (false == (\
@@ -133,7 +135,7 @@ bool HikCamera::getImgInit()
         PlayM4_SetDecCallBackMend(nPort, DecCBFun, pp_img) /* 设置视频解码回调函数 */ && \
         PlayM4_Play(nPort, nullptr) /* 开始播放 */))
     {
-        return false;
+        return false;  // 设置解码回调失败，返回
     }
 
     //启动实时预览，设置实施回调
@@ -148,64 +150,63 @@ bool HikCamera::getImgInit()
     {
         NET_DVR_Logout(lUserID);
         NET_DVR_Cleanup();
-        return false;
+        return false;  // 实时播放失败，返回
     }
-
-    int waitMax = 0;
-    int WAITMAX = 100;
-    while (nullptr == *pp_img) // 关键一步，等待回调函数DecCBFun运行之后才可以进行之后操作
+    clock_t t0, t1;
+    t0 = clock();
+    while (0 == nHeight * nWidth)  // 关键一步，等待回调函数DecCBFun运行之后才可以进行之后操作
     {
-        waitMax++;
-        if (WAITMAX == waitMax)
+        t1 = clock();
+        if (t1 - t0 > 2000)
         {
             NET_DVR_StopRealPlay(handle);
             NET_DVR_Logout(lUserID);
             NET_DVR_Cleanup();
-            return false;
+            return false;  // 回调函数启动失败，返回
         }
-        Sleep(100);
+        cv::Mat* p_img = *(cv::Mat**)pp_img;
+        if (nullptr != p_img && false == p_img->empty())
+        {
+            nHeight = p_img->rows;
+            nWidth = p_img->cols;
+        }
     }
+    p_decoupledBuffer = new unsigned char[nHeight * nWidth * 3];
+    return true;
 }
 /*==================================================================
-函 数 名：HikCamera::getImg
-功能描述：获取图像
+函 数 名：HikCamera::getImgBuf
+功能描述：获取图像buffer
 输入参数：
-----------img：        图像对象，引用方式作为输出
+----------buffer：     图像buffer，引用方式作为输出
 ----------shallowCopy：是否进行浅拷贝
 返 回 值：是否获取图片
 作    者：Dzm
-日    期：2022.05.22
+日    期：2022.05.23
 其    它：深拷贝自己实现，不能使用copyTo
 ==================================================================*/
-bool HikCamera::getImg(Mat& img, bool shallowCopy)
+bool HikCamera::getImgBuf(unsigned char*& buffer, bool shallowCopy)
 {
-    Mat* pImg = *(Mat**)pp_img;
-    if (pImg == nullptr)
+    cv::Mat* p_img = *(cv::Mat**)pp_img;
+    if (nullptr == p_img)
     {
         return false;
     }
     if (true == shallowCopy)
     {
         // 浅拷贝，效率高，但是处理数据可能会跟不上生成数据的速度，造成处理的数据内容部分被新生成的覆盖
-        img = *pImg;
+        buffer = p_img->data;
     }
     else
     {
         // 深拷贝，物理存储空间独立，效率低，但是稳定
-//         (*pUserParaDecCBFun->pp_img)->copyTo(*(Mat*)pCameraInfo->pImg);
-        // 上一行做法有时候会导致冲突，所以自己实现
-        // Mat的数据存储地址连续，按照uchar（8位）来读取，只需要从首地址往后读取rows*cols*3次即可
-        // 按照地址读取实时数据，不影响数据的写入，不会出现冲突
-        int rows = pImg->rows;
-        int cols = pImg->cols;
-        img.create(rows, cols, CV_8UC3);
-        unsigned char* pImgDataSrc = &(pImg)->at<uchar>(0, 0);
-        unsigned char* pImgDataDst = &img.at<uchar>(0, 0);
-        memcpy(pImgDataDst, pImgDataSrc, rows * cols * 3);
+        unsigned char* pImgDataSrc = &(p_img->at<uchar>(0, 0));
+        int ucharCount = nHeight * nWidth * 3;
+        memcpy(p_decoupledBuffer, pImgDataSrc, ucharCount);
+        buffer = p_decoupledBuffer;
     }
     return true;
 }
-
 HikCamera::HikCamera()
 {}
 
