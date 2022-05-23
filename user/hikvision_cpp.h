@@ -12,7 +12,7 @@ public:
     int nHeight;        /*Í¼Ïñ¸ß*/
     int nWidth;         /*Í¼Ïñ¿í*/
 
-    bool init();
+    static bool init();
     bool login(const char* sDeviceAddress, const char* sUserName, const char* sPassword, unsigned short wPort = 8000);
     bool getImgInit();
     bool getImgBuf(unsigned char*& p_buffer, bool shallowCopy = false);
