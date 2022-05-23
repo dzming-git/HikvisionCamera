@@ -70,7 +70,7 @@ void CALLBACK fRealDataCallBack_V30(LONG, DWORD dwDataType, BYTE* pBuffer, DWORD
 返 回 值：是否初始化成功
 作    者：Dzm
 日    期：2022.05.22
-其    它：
+其    它：静态函数，多个成员只需要调用一次
 ==================================================================*/
 bool HikCamera::init()
 {
@@ -110,11 +110,6 @@ bool HikCamera::login(const char* sDeviceAddress, const char* sUserName, const c
 /*==================================================================
 函 数 名：HikCamera::getImgInit
 功能描述：获取图片之前做的初始化
-输入参数：
-----------sDeviceAddress：网络摄像头ip地址
-----------sUserName：登录用户名
-----------sPassword：登录密码
-----------wPort：端口号，一般为8000
 返 回 值：是否初始化成功
 作    者：Dzm
 日    期：2022.05.22
