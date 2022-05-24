@@ -1,3 +1,4 @@
+AudioRender.dll
 HCCore.dll
 HCCoreDevCfg.dll
 HCNetSDK.dll
