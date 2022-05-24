@@ -202,6 +202,38 @@ bool HikCamera::getImgBuf(unsigned char*& buffer, bool shallowCopy)
     }
     return true;
 }
+
+/*==================================================================
+函 数 名：HikCamera::PTZCtrl
+功能描述：摄像头云台控制
+输入参数：
+----------cmd：   控制命令，由头文件以宏定义的形式给出
+----------speed： 转动速度
+----------stop：  停止标志位，为false时开始，为true时停止
+返 回 值：是否云台控制调用成功
+作    者：Dzm
+日    期：2022.05.24
+其    它：
+ZOOM_IN 11 焦距变大(倍率变大) 
+ZOOM_OUT 12 焦距变小(倍率变小) 
+FOCUS_NEAR 13 焦点前调 
+FOCUS_FAR 14 焦点后调 
+IRIS_OPEN 15 光圈扩大 
+IRIS_CLOSE 16 光圈缩小 
+TILT_UP 21 云台上仰 
+TILT_DOWN 22 云台下俯 
+PAN_LEFT 23 云台左转 
+PAN_RIGHT 24 云台右转 
+UP_LEFT 25 云台上仰和左转 
+UP_RIGHT 26 云台上仰和右转 
+DOWN_LEFT 27 云台下俯和左转 
+DOWN_RIGHT 28 云台下俯和右转 
+==================================================================*/
+bool HikCamera::PTZCtrl(int cmd, int speed, bool stop)
+{
+    return NET_DVR_PTZControlWithSpeed(handle, cmd, stop, speed);
+}
+
 HikCamera::HikCamera()
 {}
 
