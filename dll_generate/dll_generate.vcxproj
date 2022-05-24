@@ -33,6 +33,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <TargetName>hikvision</TargetName>
+    <IncludePath>..\Dependent\HIKSDK\Include;..\Dependent\PlayCtrl;D:\opencv345\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -42,8 +43,10 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;DLLGENERATE_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile />
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -51,6 +54,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>..\Dependent\HIKSDK\Lib\HCCore.lib;..\Dependent\HIKSDK\Lib\HCNetSDK.lib;..\Dependent\HIKSDK\Lib\HCNetSDKCom\HCAlarm.lib;..\Dependent\HIKSDK\Lib\HCNetSDKCom\HCPreview.lib;..\Dependent\HIKSDK\Lib\HCNetSDKCom\HCGeneralCfgMgr.lib;..\Dependent\\PlayCtrl\*.lib;D:\opencv345\build\x64\vc15\lib\opencv_world345.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
