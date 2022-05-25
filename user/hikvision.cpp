@@ -29,17 +29,16 @@ void CALLBACK DecCBFun(long, char* pBuf, long, FRAME_INFO* pFrameInfo, void* pp_
     cv::Mat* pImg = *(cv::Mat**)pp_img;
     if (nullptr == pImg)
     {
-        *(cv::Mat**)pp_img = new cv::Mat;
-        pImg = *(cv::Mat**)pp_img;
+        pImg = new cv::Mat;
         pImg->create(pFrameInfo->nHeight, pFrameInfo->nWidth, CV_8UC3);
     }
-    cv::Mat* pBGRImg = pImg;
     if (T_YV12 == pFrameInfo->nType)
     {
         cv::Mat YUVImg(pFrameInfo->nHeight + pFrameInfo->nHeight / 2, pFrameInfo->nWidth, CV_8UC1, (unsigned char*)pBuf);
-        cv::cvtColor(YUVImg, *pBGRImg, cv::COLOR_YUV2BGR_YV12);
+        cv::cvtColor(YUVImg, *pImg, cv::COLOR_YUV2BGR_YV12);
         YUVImg.~Mat();
     }
+    *(cv::Mat**)pp_img = pImg;
 }
 
 /*==================================================================
