@@ -7,7 +7,7 @@
 #define LIBDLL _declspec(dllexport)
 #endif
 
-class HikCamera
+class LIBDLL HikCamera
 {
 public:
     HikCamera();
