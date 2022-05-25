@@ -6,6 +6,7 @@
 #include "hikvision_cpp.h"
 #endif // DLLGENERATE_EXPORTS
 #include<ctime>
+#include<thread>
 #include <opencv2\core\core.hpp>
 #include <opencv2\highgui\highgui.hpp>
 #include <opencv2\imgproc\imgproc.hpp>
@@ -40,6 +41,7 @@ void CALLBACK DecCBFun(long, char* pBuf, long, FRAME_INFO* pFrameInfo, void* pp_
         YUVImg.~Mat();
     }
 }
+
 /*==================================================================
 函 数 名：fRealDataCallBack_V30
 功能描述：回调函数，用于实时视频码流数据获取
@@ -64,6 +66,7 @@ void CALLBACK fRealDataCallBack_V30(LONG, DWORD dwDataType, BYTE* pBuffer, DWORD
     }
     PlayM4_InputData(nPort, pBuffer, dwBufSize);
 }
+
 /*==================================================================
 函 数 名：HikCamera::init
 功能描述：海康威视网络摄像头初始化
@@ -79,6 +82,7 @@ bool HikCamera::init()
     NET_DVR_SetReconnect(10000, true);
     return flag;
 }
+
 /*==================================================================
 函 数 名：HikCamera::login
 功能描述：海康威视网络摄像头登录
@@ -103,10 +107,11 @@ bool HikCamera::login(const char* sDeviceAddress, const char* sUserName, const c
     strcpy_s(pLoginInfo.sPassword, sPassword);
     pLoginInfo.wPort = wPort;
 
-    lUserID = NET_DVR_Login_V40(&pLoginInfo, &lpDeviceInfo);
+    userID = NET_DVR_Login_V40(&pLoginInfo, &lpDeviceInfo);
 
-    return lUserID >= 0;
+    return userID >= 0;
 }
+
 /*==================================================================
 函 数 名：HikCamera::getImgInit
 功能描述：获取图片之前做的初始化
@@ -140,10 +145,10 @@ bool HikCamera::getImgInit()
     pStruPlayInfo->dwStreamType = 0;// 码流类型，0-主码流，1-子码流，2-码流3，3-码流4, 4-码流5,5-码流6,7-码流7,8-码流8,9-码流9,10-码流10
     pStruPlayInfo->dwLinkMode = 0;// 0-TCP方式,1-UDP方式,2-多播方式,3-RTP方式，4-RTP/RTSP,5-RSTP/HTTP
     pStruPlayInfo->bBlocked = 0; // 0-非阻塞取流, 1-阻塞取流
-    LONG handle = NET_DVR_RealPlay_V40(lUserID, pStruPlayInfo, fRealDataCallBack_V30, &nPort);
+    LONG handle = NET_DVR_RealPlay_V40(userID, pStruPlayInfo, fRealDataCallBack_V30, &nPort);
     if (handle < 0)
     {
-        NET_DVR_Logout(lUserID);
+        NET_DVR_Logout(userID);
         NET_DVR_Cleanup();
         return false;  // 实时播放失败，返回
     }
@@ -152,15 +157,15 @@ bool HikCamera::getImgInit()
     while (0 == nHeight * nWidth)  // 关键一步，等待回调函数DecCBFun运行之后才可以进行之后操作
     {
         t1 = clock();
-        if (t1 - t0 > 2000)
+        if (t1 - t0 > 2000)  // 2秒未成功，超时
         {
             NET_DVR_StopRealPlay(handle);
-            NET_DVR_Logout(lUserID);
+            NET_DVR_Logout(userID);
             NET_DVR_Cleanup();
             return false;  // 回调函数启动失败，返回
         }
         cv::Mat* p_img = *(cv::Mat**)pp_img;
-        if (nullptr != p_img && false == p_img->empty())
+        if (nullptr != p_img/* && false == p_img->empty()*/)
         {
             nHeight = p_img->rows;
             nWidth = p_img->cols;
@@ -169,6 +174,7 @@ bool HikCamera::getImgInit()
     p_decoupledBuffer = new unsigned char[nHeight * nWidth * 3];
     return true;
 }
+
 /*==================================================================
 函 数 名：HikCamera::getImgBuf
 功能描述：获取图像buffer
@@ -204,12 +210,31 @@ bool HikCamera::getImgBuf(unsigned char*& buffer, bool shallowCopy)
 }
 
 /*==================================================================
+函 数 名：HikCamera::PTZPreset
+功能描述：摄像头云台重置为预设点
+输入参数：
+----------cmd：    控制命令，由头文件以宏定义的形式给出
+----------index：  预设点序号
+返 回 值：是否云台控制调用成功
+作    者：Dzm
+日    期：2022.05.25
+其    它：需先启动预览
+SET_PRESET 8 设置预置点
+CLE_PRESET 9 清除预置点
+GOTO_PRESET 39 转到预置点
+==================================================================*/
+bool HikCamera::PTZPreset(int cmd, int index)
+{
+    return NET_DVR_PTZPreset(handle, cmd, index);
+}
+
+/*==================================================================
 函 数 名：HikCamera::PTZCtrl
 功能描述：摄像头云台控制
 输入参数：
-----------cmd：   控制命令，由头文件以宏定义的形式给出
-----------speed： 转动速度
-----------stop：  停止标志位，为false时开始，为true时停止
+----------cmd：    控制命令，由头文件以宏定义的形式给出
+----------speed：  控制速度（转动、放大）
+----------stop：   停止标志位，为false时开始，为true时停止
 返 回 值：是否云台控制调用成功
 作    者：Dzm
 日    期：2022.05.24
@@ -234,11 +259,67 @@ bool HikCamera::PTZCtrl(int cmd, int speed, bool stop)
     return NET_DVR_PTZControlWithSpeed(handle, cmd, stop, speed);
 }
 
+/*==================================================================
+函 数 名：HikCamera::makeClearerStart
+功能描述：运动图像更清晰的线程开启
+输入参数：
+----------sleepTime：   每次循环之间的间隔
+作    者：Dzm
+日    期：2022.05.25
+其    它：
+==================================================================*/
+void HikCamera::makeClearerStart(int sleepTime)
+{
+    b_clearer = true;
+    p_t_clearer = (void*)(new std::thread(&HikCamera::makeClearer, this, sleepTime));
+    ((std::thread*)p_t_clearer)->detach();
+}
+
+/*==================================================================
+函 数 名：HikCamera::makeClearerStart
+功能描述：运动图像更清晰的线程结束
+作    者：Dzm
+日    期：2022.05.24
+其    它：
+==================================================================*/
+void HikCamera::makeClearerEnd()
+{
+    b_clearer = false;
+    if (nullptr != p_t_clearer)
+    {
+        std::thread* temp = (std::thread*)p_t_clearer;
+        delete temp;
+        p_t_clearer = nullptr;
+    }
+}
+
+/*==================================================================
+函 数 名：HikCamera::makeClearer
+功能描述：运动图像更清晰的线程函数
+输入参数：
+----------sleepTime：   每次循环之间的间隔
+作    者：Dzm
+日    期：2022.05.25
+其    它：
+==================================================================*/
+void HikCamera::makeClearer(int sleepTime)
+{
+    while (b_clearer)
+    {
+        NET_DVR_MakeKeyFrame(userID, 1); // 子码流：NET_DVR_MakeKeyFrameSub
+        Sleep(sleepTime);
+    }
+}
+
 HikCamera::HikCamera()
-{}
+{
+    b_clearer = true;
+    p_t_clearer = nullptr;
+}
 
 HikCamera::~HikCamera()
 {
     delete* pp_img;
     delete pp_img;
+    makeClearerEnd();
 }
