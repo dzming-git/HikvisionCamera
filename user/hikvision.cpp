@@ -73,14 +73,15 @@ void CALLBACK fRealDataCallBack_V30(LONG, DWORD dwDataType, BYTE* pBuffer, DWORD
 功能描述：海康威视网络摄像头初始化
 返 回 值：是否初始化成功
 作    者：Dzm
-日    期：2022.05.22
+日    期：2022.05.26
 其    它：静态函数，多个成员只需要调用一次
 ==================================================================*/
 bool HikCamera::init()
 {
-    bool flag = NET_DVR_Init();
-    NET_DVR_SetConnectTime(2000, 1);
-    NET_DVR_SetReconnect(10000, true);
+    bool flag = true;
+    flag &= NET_DVR_Init();
+    flag &= NET_DVR_SetConnectTime(2000, 1);
+    flag &= NET_DVR_SetReconnect(10000, true);
     return flag;
 }
 
@@ -118,33 +119,38 @@ bool HikCamera::login(const char* sDeviceAddress, const char* sUserName, const c
 功能描述：获取图片之前做的初始化
 返 回 值：是否初始化成功
 作    者：Dzm
-日    期：2022.05.22
+日    期：2022.05.26
 其    它：该函数主要分为两个部分：（有先后顺序）
           1.设置解码回调
           2.启动实时预览，设置实施回调
           部分摄像头不支持主码流传输，后续进行针对性优化【mark】
 ==================================================================*/
+#include <iostream>
+using namespace std;
 bool HikCamera::getImgInit()
 {
     //设置解码回调
-    if (false == (\
-        PlayM4_GetPort(&nPort) /* 获取播放库通道号 */ && \
-        PlayM4_SetStreamOpenMode(nPort, STREAME_REALTIME) /* 设置流模式 */ && \
-        PlayM4_OpenStream(nPort, nullptr, 0, 1024 * 1024) /* 打开流 最后一个参数不了解含义【mark】 */ && \
-        PlayM4_SetDecCallBackMend(nPort, DecCBFun, pp_yuv420) /* 设置视频解码回调函数 */ && \
-        PlayM4_Play(nPort, nullptr) /* 开始播放 */))
+    bool flag = true;
+    flag &= PlayM4_GetPort(&nPort); /* 获取播放库通道号 */
+    flag &= PlayM4_SetStreamOpenMode(nPort, STREAME_REALTIME); /* 设置流模式 */
+    flag &= PlayM4_OpenStream(nPort, nullptr, 0, 1024 * 1024); /* 打开流 最后一个参数不了解含义【mark】 */
+    flag &= PlayM4_SetDecCallBackMend(nPort, DecCBFun, pp_yuv420); /* 设置视频解码回调函数 */
+    flag &= PlayM4_Play(nPort, nullptr); /* 开始播放 */
+    if (false == flag)
     {
+        PlayM4_FreePort(nPort);
+        Sleep(1000);
         return false;  // 设置解码回调失败，返回
     }
 
     //启动实时预览，设置实施回调
-    NET_DVR_PREVIEWINFO* pStruPlayInfo = new NET_DVR_PREVIEWINFO;
-    pStruPlayInfo->hPlayWnd = nullptr; //窗口为空，设备SDK不解码只取流
-    pStruPlayInfo->lChannel = 1; //Channel number 设备通道
-    pStruPlayInfo->dwStreamType = 0;// 码流类型，0-主码流，1-子码流，2-码流3，3-码流4, 4-码流5,5-码流6,7-码流7,8-码流8,9-码流9,10-码流10
-    pStruPlayInfo->dwLinkMode = 0;// 0-TCP方式,1-UDP方式,2-多播方式,3-RTP方式，4-RTP/RTSP,5-RSTP/HTTP
-    pStruPlayInfo->bBlocked = 0; // 0-非阻塞取流, 1-阻塞取流
-    LONG handle = NET_DVR_RealPlay_V40(userID, pStruPlayInfo, fRealDataCallBack_V30, &nPort);
+    NET_DVR_PREVIEWINFO struPlayInfo;
+    struPlayInfo.hPlayWnd = nullptr; //窗口为空，设备SDK不解码只取流
+    struPlayInfo.lChannel = 1; //Channel number 设备通道
+    struPlayInfo.dwStreamType = 0;// 码流类型，0-主码流，1-子码流，2-码流3，3-码流4, 4-码流5,5-码流6,7-码流7,8-码流8,9-码流9,10-码流10
+    struPlayInfo.dwLinkMode = 0;// 0-TCP方式,1-UDP方式,2-多播方式,3-RTP方式，4-RTP/RTSP,5-RSTP/HTTP
+    struPlayInfo.bBlocked = 0; // 0-非阻塞取流, 1-阻塞取流
+    LONG handle = NET_DVR_RealPlay_V40(userID, &struPlayInfo, fRealDataCallBack_V30, &nPort);
     if (handle < 0)
     {
         NET_DVR_Logout(userID);
@@ -309,6 +315,7 @@ void HikCamera::makeClearer(int sleepTime)
 
 HikCamera::HikCamera()
 {
+    nPort = 0;
     b_clearer = true;
     p_t_clearer = nullptr;
     pp_yuv420 = new unsigned char*;
@@ -317,5 +324,7 @@ HikCamera::HikCamera()
 
 HikCamera::~HikCamera()
 {
+    delete* pp_yuv420;
+    delete pp_yuv420;
     makeClearerEnd();
 }
