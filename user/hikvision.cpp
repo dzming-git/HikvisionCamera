@@ -5,40 +5,42 @@
 #else
 #include "hikvision_cpp.h"
 #endif // DLLGENERATE_EXPORTS
-#include<ctime>
-#include<thread>
-#include <opencv2\core\core.hpp>
-#include <opencv2\highgui\highgui.hpp>
-#include <opencv2\imgproc\imgproc.hpp>
+#include <ctime>
+#include <thread>
 
 /*==================================================================
 函 数 名：DecCBFun
 功能描述：回调函数，用于解码，并将解码后的图像传出
 输入参数：
-----------pBuf:       图像缓冲区指针
-----------pFrameInfo：图像的信息，比如宽（nWidth）、高（nHeight）、图像类型（nType）
-----------pp_img：    由getImgInit函数中的PlayM4_SetDecCallBackMend作为参数输入，输出图像的双重指针
+----------pBuf:              图像缓冲区指针
+----------pFrameInfo：       图像的信息，比如宽（nWidth）、高（nHeight）、图像类型（nType）
+----------pp_yuv420：        由getImgInit函数中的PlayM4_SetDecCallBackMend作为参数输入，输出图像的双重指针
+                             前 HEAD_LENGTH 位为信息位，目前安排：0-3位存储高宽，4位保留，5-end存储yuv420的buffer
 作    者：Dzm
-日    期：2022.05.22
+日    期：2022.05.26
 其    它：海康威视SDK中用到的PlayCtrl模块中的4中PlayM4_SetDecCallBack都没有void*参数
           https:qcsdn.com/q/a/324952.html#download
           上述网站中的PlayCtrl模块中的PlayM4_SetDecCallBack有void* 参数，进行替换即可
 ==================================================================*/
-void CALLBACK DecCBFun(long, char* pBuf, long, FRAME_INFO* pFrameInfo, void* pp_img, void*)
+#define HEAD_LENGTH 5
+void CALLBACK DecCBFun(long, char* pBuf, long, FRAME_INFO* pFrameInfo, void* pp_yuv420, void*)
 {
-    cv::Mat* pImg = *(cv::Mat**)pp_img;
-    if (nullptr == pImg)
+    static int bufLen = (pFrameInfo->nHeight + pFrameInfo->nHeight / 2) * pFrameInfo->nWidth;
+    unsigned char* p_yuv420 = *(unsigned char**)pp_yuv420;
+    if (nullptr == p_yuv420)
     {
-        pImg = new cv::Mat;
-        pImg->create(pFrameInfo->nHeight, pFrameInfo->nWidth, CV_8UC3);
+        p_yuv420 = new unsigned char[bufLen + HEAD_LENGTH];
+        p_yuv420[0] = pFrameInfo->nHeight / 255;
+        p_yuv420[1] = pFrameInfo->nHeight % 255;
+        p_yuv420[2] = pFrameInfo->nWidth / 255;
+        p_yuv420[3] = pFrameInfo->nWidth % 255;
+        p_yuv420[4] = 0;
     }
     if (T_YV12 == pFrameInfo->nType)
     {
-        cv::Mat YUVImg(pFrameInfo->nHeight + pFrameInfo->nHeight / 2, pFrameInfo->nWidth, CV_8UC1, (unsigned char*)pBuf);
-        cv::cvtColor(YUVImg, *pImg, cv::COLOR_YUV2BGR_YV12);
-        YUVImg.~Mat();
+        memcpy(p_yuv420 + HEAD_LENGTH, pBuf, bufLen);
     }
-    *(cv::Mat**)pp_img = pImg;
+    *(unsigned char**)pp_yuv420 = p_yuv420;
 }
 
 /*==================================================================
@@ -124,14 +126,12 @@ bool HikCamera::login(const char* sDeviceAddress, const char* sUserName, const c
 ==================================================================*/
 bool HikCamera::getImgInit()
 {
-    cv::Mat **temp = new cv::Mat*;
-    pp_img = (void**)(void*)temp;
     //设置解码回调
     if (false == (\
         PlayM4_GetPort(&nPort) /* 获取播放库通道号 */ && \
         PlayM4_SetStreamOpenMode(nPort, STREAME_REALTIME) /* 设置流模式 */ && \
         PlayM4_OpenStream(nPort, nullptr, 0, 1024 * 1024) /* 打开流 最后一个参数不了解含义【mark】 */ && \
-        PlayM4_SetDecCallBackMend(nPort, DecCBFun, pp_img) /* 设置视频解码回调函数 */ && \
+        PlayM4_SetDecCallBackMend(nPort, DecCBFun, pp_yuv420) /* 设置视频解码回调函数 */ && \
         PlayM4_Play(nPort, nullptr) /* 开始播放 */))
     {
         return false;  // 设置解码回调失败，返回
@@ -163,47 +163,44 @@ bool HikCamera::getImgInit()
             NET_DVR_Cleanup();
             return false;  // 回调函数启动失败，返回
         }
-        cv::Mat* p_img = *(cv::Mat**)pp_img;
-        if (nullptr != p_img/* && false == p_img->empty()*/)
+        unsigned char* p_yuv420 = *pp_yuv420;
+        if (nullptr != p_yuv420)
         {
-            nHeight = p_img->rows;
-            nWidth = p_img->cols;
+            nHeight = p_yuv420[0] * 255 + p_yuv420[1];
+            nWidth = p_yuv420[2] * 255 + p_yuv420[3];
         }
     }
-    p_decoupledBuffer = new unsigned char[nHeight * nWidth * 3];
     return true;
 }
 
 /*==================================================================
-函 数 名：HikCamera::getImgBuf
+函 数 名：HikCamera::getYUV420Buf
 功能描述：获取图像buffer
 输入参数：
-----------buffer：     图像buffer，引用方式作为输出
+----------p_buffer：   图像buffer指针，引用方式作为输出，必须提前分配空间
 ----------shallowCopy：是否进行浅拷贝
 返 回 值：是否获取图片
 作    者：Dzm
-日    期：2022.05.23
-其    它：深拷贝自己实现，不能使用copyTo
+日    期：2022.05.26
+其    它：
 ==================================================================*/
-bool HikCamera::getImgBuf(unsigned char*& buffer, bool shallowCopy)
+bool HikCamera::getYUV420Buf(unsigned char*& p_buffer, bool shallowCopy)
 {
-    cv::Mat* p_img = *(cv::Mat**)pp_img;
-    if (nullptr == p_img)
-    {
-        return false;
-    }
+    unsigned char* p_yuv420 = *pp_yuv420;
+    unsigned char* p_yuv420Buffer = p_yuv420 + HEAD_LENGTH;
     if (true == shallowCopy)
     {
         // 浅拷贝，效率高，但是处理数据可能会跟不上生成数据的速度，造成处理的数据内容部分被新生成的覆盖
-        buffer = p_img->data;
+        p_buffer = p_yuv420Buffer;
     }
     else
     {
         // 深拷贝，物理存储空间独立，效率低，但是稳定
-        unsigned char* pImgDataSrc = &(p_img->at<uchar>(0, 0));
-        int ucharCount = nHeight * nWidth * 3;
-        memcpy(p_decoupledBuffer, pImgDataSrc, ucharCount);
-        buffer = p_decoupledBuffer;
+        if (nullptr == p_buffer)
+        {
+            return false;
+        }
+        memcpy(p_buffer, p_yuv420Buffer, (nHeight + nHeight / 2) * nWidth);
     }
     return true;
 }
@@ -214,7 +211,7 @@ bool HikCamera::getImgBuf(unsigned char*& buffer, bool shallowCopy)
 输入参数：
 ----------cmd：    控制命令，由头文件以宏定义的形式给出
 ----------index：  预设点序号
-返 回 值：是否云台控制调用成功
+返 回 值：是否调用成功
 作    者：Dzm
 日    期：2022.05.25
 其    它：需先启动预览
@@ -314,11 +311,11 @@ HikCamera::HikCamera()
 {
     b_clearer = true;
     p_t_clearer = nullptr;
+    pp_yuv420 = new unsigned char*;
+    *(pp_yuv420) = nullptr;
 }
 
 HikCamera::~HikCamera()
 {
-    delete* pp_img;
-    delete pp_img;
     makeClearerEnd();
 }
