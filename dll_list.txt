@@ -5,7 +5,6 @@ HCNetSDK.dll
 HCPreview.dll
 hikvision.dll
 libeay32.dll
-opencv_world345.dll
 PlayCtrl.dll
 ssleay32.dll
 SuperRender.dll
