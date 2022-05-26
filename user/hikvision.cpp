@@ -125,8 +125,6 @@ bool HikCamera::login(const char* sDeviceAddress, const char* sUserName, const c
           2.启动实时预览，设置实施回调
           部分摄像头不支持主码流传输，后续进行针对性优化【mark】
 ==================================================================*/
-#include <iostream>
-using namespace std;
 bool HikCamera::getImgInit()
 {
     //设置解码回调
