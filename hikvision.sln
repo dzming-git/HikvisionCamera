@@ -9,8 +9,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dll_generate", "dll_generat
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dll_test", "dll_test\dll_test.vcxproj", "{65964511-6D06-42F1-8AB2-D2997BD0F9D7}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "README", "README", "{8DAB5D47-9520-4EBA-992C-7F9D957EAB05}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "其他", "其他", "{8DAB5D47-9520-4EBA-992C-7F9D957EAB05}"
 	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		dll_list.txt = dll_list.txt
 		README.md = README.md
 	EndProjectSection
 EndProject
