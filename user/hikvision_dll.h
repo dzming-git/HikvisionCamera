@@ -52,17 +52,17 @@ public:
     bool getImgInit();
 
     /*==================================================================
-    函 数 名：HikCamera::getImgBuf
+    函 数 名：HikCamera::getYUV420Buf
     功能描述：获取图像buffer
     输入参数：
-    ----------buffer：     图像buffer，引用方式作为输出
+    ----------p_buffer：   图像buffer指针，引用方式作为输出，必须提前分配空间
     ----------shallowCopy：是否进行浅拷贝
     返 回 值：是否获取图片
     作    者：Dzm
-    日    期：2022.05.23
+    日    期：2022.05.26
     其    它：
     ==================================================================*/
-    bool getImgBuf(unsigned char*& p_buffer, bool shallowCopy = false);
+    bool getYUV420Buf(unsigned char*& p_buffer, bool shallowCopy = false);
 
     /*==================================================================
     函 数 名：HikCamera::PTZPreset
@@ -132,8 +132,7 @@ private:
     long handle;                        /*句柄*/
     long userID;                        /*登录摄像头的用户标识*/
     long nPort;                         /*视频流通道号*/
-    void** pp_img;                      /*二重指针，最终指向摄像头图像的源地址*/
-    unsigned char* p_decoupledBuffer;   /*解耦合之后的图像buffer*/
+    unsigned char** pp_yuv420;          /*yuv图像的二重指针*/
     void* p_t_clearer;                  /*运动图像更清晰的线程指针*/
     bool b_clearer;                     /*运动图像更清晰的开启标志*/
 
