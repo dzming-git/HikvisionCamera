@@ -1,40 +1,40 @@
 # HIKSDK
-°¢ÀïÔÆ£ºhttps://www.aliyundrive.com/s/U6WvVLhx8v3  
-ÌáÈ¡Âë£º44tk  
-Ñ¹Ëõ°üÃÜÂë£ºdzming-git
+é˜¿é‡Œäº‘ï¼šhttps://www.alipan.com/s/zAU41RqSJy4
+æå–ç ï¼š16mu  
+å‹ç¼©åŒ…å¯†ç ï¼šdzming-git
 # HIKDLL
-°¢ÀïÔÆ£ºhttps://www.aliyundrive.com/s/CcLDXsi67TH   
-ÌáÈ¡Âë£º0gn0  
-Ñ¹Ëõ°üÃÜÂë£ºdzming-git
+é˜¿é‡Œäº‘ï¼šhttps://www.alipan.com/s/TaDEdndpA8m
+æå–ç ï¼š5su8  
+å‹ç¼©åŒ…å¯†ç ï¼šdzming-git
 # PlayCtrl
-°¢ÀïÔÆ£ºhttps://www.aliyundrive.com/s/BZjeEmb39Xb  
-ÌáÈ¡Âë£º4d1q  
-Ñ¹Ëõ°üÃÜÂë£ºdzming-git
-# ÎÄ¼ş½á¹¹
-©À©¤Dependent  
-©¦  ©À©¤HIKSDK  
-©¦  ©¦  ©À©¤Include  
-©¦  ©¦  ©¦      DataType.h  
-©¦  ©¦  ©¦      DecodeCardSdk.h  
-©¦  ©¦  ©¦      HCNetSDK.h  
-©¦  ©¦  ©¦  
-©¦  ©¦  ©¸©¤Lib  
-©¦  ©¦      ©¦  GdiPlus.lib  
-©¦  ©¦      ©¦  HCCore.lib  
-©¦  ©¦      ©¦  HCNetSDK.lib  
-©¦  ©¦      ©¦  
-©¦  ©¦      ©¸©¤HCNetSDKCom  
-©¦  ©¦              HCAlarm.lib  
-©¦  ©¦              HCGeneralCfgMgr.lib  
-©¦  ©¦              HCPreview.lib  
-©¦  ©¦  
-©¦  ©¸©¤PlayCtrl  
-©¦          PlayCtrl.lib  
-©¦          PlayM4.h  
-©¦          WindowsPlayM4.h  
+é˜¿é‡Œäº‘ï¼šhttps://www.alipan.com/s/tRFKUPNP34S  
+æå–ç ï¼š6j3u  
+å‹ç¼©åŒ…å¯†ç ï¼šdzming-git
+# æ–‡ä»¶ç»“æ„
+â”œâ”€Dependent  
+â”‚  â”œâ”€HIKSDK  
+â”‚  â”‚  â”œâ”€Include  
+â”‚  â”‚  â”‚      DataType.h  
+â”‚  â”‚  â”‚      DecodeCardSdk.h  
+â”‚  â”‚  â”‚      HCNetSDK.h  
+â”‚  â”‚  â”‚  
+â”‚  â”‚  â””â”€Lib  
+â”‚  â”‚      â”‚  GdiPlus.lib  
+â”‚  â”‚      â”‚  HCCore.lib  
+â”‚  â”‚      â”‚  HCNetSDK.lib  
+â”‚  â”‚      â”‚  
+â”‚  â”‚      â””â”€HCNetSDKCom  
+â”‚  â”‚              HCAlarm.lib  
+â”‚  â”‚              HCGeneralCfgMgr.lib  
+â”‚  â”‚              HCPreview.lib  
+â”‚  â”‚  
+â”‚  â””â”€PlayCtrl  
+â”‚          PlayCtrl.lib  
+â”‚          PlayM4.h  
+â”‚          WindowsPlayM4.h  
 ## DLL
-dllÎÄ¼ş·ÅÔÚReleseÎÄ¼ş¼ĞÏÂ£¬ÓëÉú³ÉµÄ*.exeÎÄ¼şÔÚÍ¬Ò»Ä¿Â¼  
-ÏÂÁĞÎÄ¼şÔÚHIKDLLÖĞ  
+dllæ–‡ä»¶æ”¾åœ¨Releseæ–‡ä»¶å¤¹ä¸‹ï¼Œä¸ç”Ÿæˆçš„*.exeæ–‡ä»¶åœ¨åŒä¸€ç›®å½•  
+ä¸‹åˆ—æ–‡ä»¶åœ¨HIKDLLä¸­  
 HCCore.dll  
 HCCoreDevCfg.dll  
 HCNetSDK.dll  
@@ -42,11 +42,11 @@ HCPreview.dll
 libeay32.dll  
 ssleay32.dll  
 SystemTransform.dll  
-ÏÂÁĞÎÄ¼şÔÚPlayCtrlÖĞ£¬²»¿ÉÒÔÊ¹ÓÃHIKDLLÖĞµÄdll  
+ä¸‹åˆ—æ–‡ä»¶åœ¨PlayCtrlä¸­ï¼Œä¸å¯ä»¥ä½¿ç”¨HIKDLLä¸­çš„dll  
 AudioRender.dll  
 PlayCtrl.dll  
 SuperRender.dll  
-ÏÂÁĞÎÄ¼şÔÚopencvÖĞ  
+ä¸‹åˆ—æ–‡ä»¶åœ¨opencvä¸­  
 opencv_world345.dll  
-ÏÂÁĞÎÄ¼şÓÉ¸ÃÏîÄ¿Éú³É
+ä¸‹åˆ—æ–‡ä»¶ç”±è¯¥é¡¹ç›®ç”Ÿæˆ
 hikvision.dll  
